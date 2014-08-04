@@ -1,6 +1,6 @@
 {
   "name": "require-timer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Track and report module load times",
   "main": "index.js",
   "scripts": {
