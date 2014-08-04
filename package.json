@@ -1,0 +1,30 @@
+{
+  "name": "require-timer",
+  "version": "1.0.0",
+  "description": "Track and report module load times",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/iarna/require-timer.git"
+  },
+  "keywords": [
+    "module",
+    "require",
+    "load",
+    "timing",
+    "startup",
+    "profiling"
+  ],
+  "author": "Rebecca Turner <me@re-becca.org> (http://re-becca.org/)",
+  "license": "BSD",
+  "bugs": {
+    "url": "https://github.com/iarna/require-timer/issues"
+  },
+  "homepage": "https://github.com/iarna/require-timer",
+  "dependencies": {
+    "sprintf": "^0.1.3"
+  }
+}
