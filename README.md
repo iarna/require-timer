@@ -47,9 +47,9 @@ An example of the first few lines of running this on npm:
 The output is ordered by when the module began being loaded. That is, the
 output is in *source code* order.
 
-The first number, is the amount of time into execution taht this module COMPLETED loading.
+The first number, is the amount of time into execution that this module COMPLETED loading.
 
-The second number is how long the module took to load, not including its children.
+The second number is how long the module took to load, not including the modules it loaded.
 
 Finally, have the require stack:
 
