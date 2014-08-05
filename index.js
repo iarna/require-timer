@@ -1,5 +1,5 @@
 "use strict";
-module._requireTimer = {start: process.hrtime()};
+module._requireTimer = {start: time()};
 var path = require('path');
 module._requireTimer.name = 'require-timer';
 module._requireTimer.path = path.dirname(module.filename);
@@ -10,20 +10,9 @@ module.exports = function (stream) {
     out = stream;
 }
 
-function timems(time) {
-    return time[0] * 1e3 + time[1] / 1e6; //
-}
-function timeGt(time1,time2) {
-    return timems(time1) > timems(time2);
-}
-function timeSub(time1,time2) {
-    var sec = time1[0] - time2[0];
-    var nsec = time1[1] - time2[1];
-    if (nsec<0) {
-        -- sec;
-        nsec = 1e9 + nsec;
-    }
-    return timems([sec,nsec]);
+function time() {
+    var hrtime = process.hrtime();
+    return hrtime[0] * 1e3 + hrtime[1] / 1e6; //
 }
 
 function escapeRegExp(string){
@@ -88,26 +77,37 @@ require.extensions['.js'] = function (module) {
     }
     var previous = loading;
     loading = module;
-    current.start = process.hrtime();
+    current.start = time();
     var result = defaultLoader.apply(null,arguments);
-    current.end = process.hrtime();
+    current.end = time();
     loading = previous;
 
     return result;
 }
 
 process.nextTick(function () {
-    top._requireTimer.end = process.hrtime();
+    top._requireTimer.end = time();
     // we make a fake module here to track any loads that occur after the
     // main function exits but before the program exits.
-    loading = {children:[], parent:null, _requireTimer:{path:top._requireTimer.path,name:'async',start:process.hrtime(),end:process.hrtime()}};
+    loading = {children:[], parent:null, _requireTimer:{path:top._requireTimer.path,name:'async',start:time(),end:time()}};
 });
 process.on('exit', function(code) {
+    if (!top._requireTimer.end) {
+        top._requireTimer.end = time();
+        loading = null;
+    }
     require.extensions['.js'] = defaultLoader;
     var sprintf = require('sprintf');
     var startupreport = timingReport(top).results;
-    var asyncreport = timingReport(loading).results;
-    startupreport.concat(asyncreport).sort(function(A,B){
+    var report;
+    if (loading) {
+        var asyncreport = timingReport(loading).results;
+        report = startupreport.concat(asyncreport);
+    }
+    else {
+        report = startupreport;
+    }
+    report.sort(function(A,B){
         return A.start > B.start ? 1 : A.start < B.start ? -1 : A.stack > B.stack ? 1 : A.stack < B.stack ? -1 : 0
     }).forEach(function(R) {
         out.write(sprintf('%9.3f msec from start, %9.3f msec to load: %s\n', R.time, R.load<0?0:R.load, R.stack));
@@ -125,11 +125,12 @@ function timingReport(module,stack) {
         childAtLoad += report.loadTime;
         results.push.apply(results, report.results);
     }
-    var loadTime = timeSub(module._requireTimer.end, module._requireTimer.start);
-    var timeSoFar = timeSub(module._requireTimer.end, top._requireTimer.start);
+    if (!module._requireTimer.end) module._requireTimer.end = top._requireTimer.end;
+    var loadTime = module._requireTimer.end - module._requireTimer.start;
+    var timeSoFar = module._requireTimer.end - top._requireTimer.start;
     // We report the amount of time that this, without the children loaded when it loaded took.
-    results.push({start: timems(module._requireTimer.start), end: timems(module._requireTimer.end), time: timeSoFar, load: loadTime - childAtLoad, stack: stack});
+    results.push({start: module._requireTimer.start, end: module._requireTimer.end, time: timeSoFar, load: loadTime - childAtLoad, stack: stack});
     return {results:results, loadTime: loadTime};
 }
 
-module._requireTimer.end = process.hrtime();
+module._requireTimer.end = time();
