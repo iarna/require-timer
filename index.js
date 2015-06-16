@@ -3,11 +3,21 @@ module._requireTimer = {start: time()};
 var path = require('path');
 module._requireTimer.name = 'require-timer';
 module._requireTimer.path = path.dirname(module.filename);
-
+var fs = require('fs');
 var out = process.stderr;
-
+var sync = false;
 module.exports = function (stream) {
-    out = stream;
+    if (typeof stream === 'string') {
+      out = {
+        data: '',
+        write: function (str) {
+          this.data += str;
+        }
+      };
+      sync = stream;
+    } else {
+      out = stream;
+    }
 }
 
 function time() {
@@ -34,7 +44,7 @@ require.extensions['.js'] = function (module) {
         return defaultLoader.apply(null,arguments);
     }
     // module.parent != the module being required that triggered this to be required.
-    // Rather, module.parent is the 
+    // Rather, module.parent is the
     if (loading && loading !== module.parent) {
         module.parent.children = module.parent.children.filter(function(M){ return M !== module });
         loading.children.push(module);
@@ -112,8 +122,10 @@ process.on('exit', function(code) {
     }).forEach(function(R) {
         out.write(sprintf('%9.3f msec from start, %9.3f msec to load: %s\n', R.time, R.load<0?0:R.load, R.stack));
     });
+    if (sync) {
+      fs.writeFileSync(sync, out.data);
+    }
 });
-
 function timingReport(module,stack) {
     var results = [];
     var childAtLoad = 0;
